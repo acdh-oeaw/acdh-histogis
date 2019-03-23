@@ -58,6 +58,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'requests>=2.20.1',
+        'lxml>=4.3.2'
     ],
     license="MIT",
     classifiers=[

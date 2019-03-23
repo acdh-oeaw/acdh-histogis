@@ -1,4 +1,6 @@
+import re
 import requests
+import lxml.etree as ET
 
 HISTOGIS_URL = "https://histogis.acdh.oeaw.ac.at/api"
 
@@ -31,6 +33,7 @@ class HistoGis():
         :param lng: Langitude of the place to query for
         :param when: An iso-date string
         :param polygon: If true, the whole geojson is returned, only the properties
+        :return: A list of matching objects
         """
 
         if when is not None:
@@ -48,9 +51,40 @@ class HistoGis():
             return r.json()
         else:
             try:
-                return r.json()
+                return r.json()['features'][0]['properties']
             except IndexError:
                 return self.empty_result
+
+    def fetch_gnd_rdf(self, gnd="http://www.geonames.org/2772400/linz.html"):
+        """returns name and coordinates for the passed in geonames identifier
+        :param gnd: Any kind of geonames id, can be just the geonames id (as string)\
+        or any geonames URI like http://www.geonames.org/2772400/linz.html
+        :return: a dict with keys 'name', 'lat' and lng.
+        """
+        gnd_id = re.search(r"\d+", gnd).group()
+        url = "http://sws.geonames.org/{}/about.rdf".format(gnd_id)
+        rdf = ET.parse(url)
+        lat = rdf.xpath(".//wgs84_pos:lat/text()", namespaces=self.nsmap)[0]
+        lng = rdf.xpath(".//wgs84_pos:long/text()", namespaces=self.nsmap)[0]
+        name = rdf.xpath(".//gn:name/text()", namespaces=self.nsmap)[0]
+        return {
+            "name": name,
+            "lat": lat,
+            "lng": lng
+        }
+
+    def query_by_geonames_id(
+        self, gnd="https://www.geonames.org/2772400/", when='1860-12-12', polygon=False
+    ):
+        """Makes a spatial lookup by geonames id a list of matching objects
+        :param gnd: Any kind of geonames id, can be just the geonames id (as string)\
+        or any geonames URI like http://www.geonames.org/2772400/linz.html
+        :param when: An iso-date string
+        :param polygon: If true, the whole geojson is returned, only the properties
+        :return: A list of matching objects
+        """
+        coords = self.fetch_gnd_rdf(gnd)
+        return self. query(lat=coords['lat'], lng=coords['lng'], when=when, polygon=polygon)
 
     def __init__(self, histogis_url=HISTOGIS_URL):
         """__init__
@@ -70,4 +104,11 @@ class HistoGis():
             'next': None,
             'previous': None,
             'type': 'FeatureCollection'
+        }
+        self.nsmap = {
+            'wgs84_pos': "http://www.w3.org/2003/01/geo/wgs84_pos#",
+            'gn': "http://www.geonames.org/ontology#",
+            'rdf': "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+            'tei': "http://www.tei-c.org/ns/1.0",
+            'xml': "http://www.w3.org/XML/1998/namespace",
         }

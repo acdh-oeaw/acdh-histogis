@@ -10,6 +10,24 @@ Installation
 `pip install acdh-histogis`
 
 
+Use:
+------------
+
+```python
+from histogis.histogis import HistoGis as hg
+
+hg().query(lat=48.2894, lng=14.304, when='1860-12-12', polygon=False)
+
+hg().query_by_geonames_id(
+    gnd='https://www.geonames.org/2772400/',
+    when='1860-12-12',
+    polygon=False,
+)
+
+
+```
+
+
 Licensing
 ---------
 
