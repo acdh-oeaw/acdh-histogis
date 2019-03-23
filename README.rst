@@ -10,7 +10,7 @@ acdh-histogis is a python package providing a high level api to interact with [H
 Installation
 ------------
 
-`pip install acdh-histogis`
+    pip install acdh-histogis
 
 
 Use:
@@ -29,9 +29,6 @@ Use:
         when='1860-12-12',
         polygon=False,
     )
-
-
-```
 
 
 Licensing
