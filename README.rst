@@ -1,6 +1,9 @@
 Readme
 ======
 
+.. image:: https://badge.fury.io/py/acdh-histogis.svg
+    :target: https://badge.fury.io/py/acdh-histogis
+
 acdh-histogis is a python package providing a high level api to interact with [HistoGIS](https://histogis.acdh.oeaw.ac.at/)
 
 
@@ -13,16 +16,19 @@ Installation
 Use:
 ------------
 
-```python
-from histogis.histogis import HistoGis as hg
+.. code-block:: python
 
-hg().query(lat=48.2894, lng=14.304, when='1860-12-12', polygon=False)
+    from histogis.histogis import HistoGis as hg
 
-hg().query_by_geonames_id(
-    gnd='https://www.geonames.org/2772400/',
-    when='1860-12-12',
-    polygon=False,
-)
+    hg().query(
+        lat=48.2894, lng=14.304, when='1860-12-12', polygon=False
+    )
+
+    hg().query_by_geonames_id(
+        gnd='https://www.geonames.org/2772400/',
+        when='1860-12-12',
+        polygon=False,
+    )
 
 
 ```
