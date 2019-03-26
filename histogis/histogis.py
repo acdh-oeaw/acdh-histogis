@@ -75,7 +75,7 @@ class HistoGis():
 
     def fetch_gnd_data(self, gnd="http://d-nb.info/gnd/4066009-6/about/lds.rdf"):
         """returns name and coordinates for the passed in gnd identifier
-        :param gnd: Any kind of gnd id, can be just the geonames id (as string)\
+        :param gnd: Any kind of gnd id, can be just the gnd id (as string)\
         or any geonames URI like http://d-nb.info/gnd/4066009-6/about/lds.rdf
         :return: a dict with keys 'name', 'lat' and lng.
         """
@@ -96,6 +96,28 @@ class HistoGis():
             "lng": lng
         }
 
+    def fetch_wikidata_data(self, wikidata="https://www.wikidata.org/entit/Q1741"):
+        """returns name and coordinates for the passed in wikidata identifier
+        :param wikidata: Any kind of wikidata id, can be just the wikidata id (as string)\
+        or any wikidata URI like https://www.wikidata.org/entit/Q1741
+        :return: a dict with keys 'name', 'lat' and lng.
+        """
+        wikidata_id = re.search("(Q\d+)", wikidata).group()
+        url = "https://wikidata.org/entity/{}.rdf".format(wikidata_id)
+        res = requests.get(url)
+        rdf = ET.fromstring(res.content)
+        lat_long = rdf.xpath(".//wdt:P625/text()", namespaces=self.nsmap)[0]
+        lat_long_match = re.search("0?([0-9\.]+)\s+0?([0-9\.]+)", lat_long)
+        if not lat_long_match:
+            raise ValueError("Wikidata RDF did not contain coordinates.")
+        lng = lat_long_match.group(1)
+        lat = lat_long_match.group(2)
+        name = rdf.xpath(".//rdf:Description[@rdf:about='http://www.wikidata.org/entity/{}']/rdfs:label[@xml:lang='de']/text()".format(wikidata_id), namespaces=self.nsmap)[0]
+        return {
+            "name": name,
+            "lat": lat,
+            "lng": lng
+        }
     def query_by_service_id(
         self, service=None, id="https://www.geonames.org/2772400/", when='1860-12-12', polygon=False
     ):
@@ -134,14 +156,17 @@ class HistoGis():
         }
         self.map_url_service = {
             'geonames': 'geonames',
-            'd-nb': 'gnd'
+            'd-nb': 'gnd',
+            'wikidata': 'wikidata'
         }
         self.nsmap = {
             'wgs84_pos': "http://www.w3.org/2003/01/geo/wgs84_pos#",
             'gn': "http://www.geonames.org/ontology#",
             'rdf': "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+            'rdfs': "http://www.w3.org/2000/01/rdf-schema#",
             'tei': "http://www.tei-c.org/ns/1.0",
             'xml': "http://www.w3.org/XML/1998/namespace",
             'geo': "http://www.opengis.net/ont/geosparql#",
-            "gndo": "http://d-nb.info/standards/elementset/gnd#"
+            "gndo": "http://d-nb.info/standards/elementset/gnd#",
+            "wdt": "http://www.wikidata.org/prop/direct/"
         }
