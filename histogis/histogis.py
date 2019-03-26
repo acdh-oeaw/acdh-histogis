@@ -55,14 +55,14 @@ class HistoGis():
             except IndexError:
                 return self.empty_result
 
-    def fetch_gnd_rdf(self, gnd="http://www.geonames.org/2772400/linz.html"):
+    def fetch_geonames_data(self, geonames="http://www.geonames.org/2772400/linz.html"):
         """returns name and coordinates for the passed in geonames identifier
-        :param gnd: Any kind of geonames id, can be just the geonames id (as string)\
+        :param geonames: Any kind of geonames id, can be just the geonames id (as string)\
         or any geonames URI like http://www.geonames.org/2772400/linz.html
         :return: a dict with keys 'name', 'lat' and lng.
         """
-        gnd_id = re.search(r"\d+", gnd).group()
-        url = "http://sws.geonames.org/{}/about.rdf".format(gnd_id)
+        geonames_id = re.search(r"\d+", geonames).group()
+        url = "http://sws.geonames.org/{}/about.rdf".format(geonames_id)
         rdf = ET.parse(url)
         lat = rdf.xpath(".//wgs84_pos:lat/text()", namespaces=self.nsmap)[0]
         lng = rdf.xpath(".//wgs84_pos:long/text()", namespaces=self.nsmap)[0]
@@ -73,8 +73,31 @@ class HistoGis():
             "lng": lng
         }
 
-    def query_by_geonames_id(
-        self, gnd="https://www.geonames.org/2772400/", when='1860-12-12', polygon=False
+    def fetch_gnd_data(self, gnd="http://d-nb.info/gnd/4066009-6/about/lds.rdf"):
+        """returns name and coordinates for the passed in gnd identifier
+        :param gnd: Any kind of gnd id, can be just the geonames id (as string)\
+        or any geonames URI like http://d-nb.info/gnd/4066009-6/about/lds.rdf
+        :return: a dict with keys 'name', 'lat' and lng.
+        """
+        gnd_id = re.search("(\d+[A-Z0-9\-]+)", gnd).group()
+        url = "http://d-nb.info/gnd/{}/about/lds.rdf".format(gnd_id)
+        res = requests.get(url)
+        rdf = ET.fromstring(res.content)
+        lat_long = rdf.xpath(".//geo:asWKT/text()", namespaces=self.nsmap)[0]
+        lat_long_match = re.search("\+0?([0-9\.]+)\s+\+0?([0-9\.]+)", lat_long)
+        if not lat_long_match:
+            raise ValueError("GND RDF did not contain coordinates.")
+        lng = lat_long_match.group(1)
+        lat = lat_long_match.group(2)
+        name = rdf.xpath('.//gndo:preferredNameForThePlaceOrGeographicName/text()', namespaces=self.nsmap)[0]
+        return {
+            "name": name,
+            "lat": lat,
+            "lng": lng
+        }
+
+    def query_by_service_id(
+        self, service=None, id="https://www.geonames.org/2772400/", when='1860-12-12', polygon=False
     ):
         """Makes a spatial lookup by geonames id a list of matching objects
         :param gnd: Any kind of geonames id, can be just the geonames id (as string)\
@@ -83,8 +106,12 @@ class HistoGis():
         :param polygon: If true, the whole geojson is returned, only the properties
         :return: A list of matching objects
         """
-        coords = self.fetch_gnd_rdf(gnd)
-        return self. query(lat=coords['lat'], lng=coords['lng'], when=when, polygon=polygon)
+        if service is None:
+            for s in self.map_url_service.keys():
+                if s in id:
+                    service = self.map_url_service[s]
+        coords = getattr(self, "fetch_{}_data".format(service))(id)
+        return self.query(lat=coords['lat'], lng=coords['lng'], when=when, polygon=polygon)
 
     def __init__(self, histogis_url=HISTOGIS_URL):
         """__init__
@@ -105,10 +132,16 @@ class HistoGis():
             'previous': None,
             'type': 'FeatureCollection'
         }
+        self.map_url_service = {
+            'geonames': 'geonames',
+            'd-nb': 'gnd'
+        }
         self.nsmap = {
             'wgs84_pos': "http://www.w3.org/2003/01/geo/wgs84_pos#",
             'gn': "http://www.geonames.org/ontology#",
             'rdf': "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
             'tei': "http://www.tei-c.org/ns/1.0",
             'xml': "http://www.w3.org/XML/1998/namespace",
+            'geo': "http://www.opengis.net/ont/geosparql#",
+            "gndo": "http://d-nb.info/standards/elementset/gnd#"
         }
