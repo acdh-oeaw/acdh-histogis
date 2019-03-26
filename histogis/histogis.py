@@ -96,10 +96,10 @@ class HistoGis():
             "lng": lng
         }
 
-    def fetch_wikidata_data(self, wikidata="https://www.wikidata.org/entit/Q1741"):
+    def fetch_wikidata_data(self, wikidata="https://www.wikidata.org/entity/Q41329"):
         """returns name and coordinates for the passed in wikidata identifier
         :param wikidata: Any kind of wikidata id, can be just the wikidata id (as string)\
-        or any wikidata URI like https://www.wikidata.org/entit/Q1741
+        or any wikidata URI like https://www.wikidata.org/entity/Q41329
         :return: a dict with keys 'name', 'lat' and lng.
         """
         wikidata_id = re.search("(Q\d+)", wikidata).group()
@@ -118,6 +118,7 @@ class HistoGis():
             "lat": lat,
             "lng": lng
         }
+
     def query_by_service_id(
         self, service=None, id="https://www.geonames.org/2772400/", when='1860-12-12', polygon=False
     ):
