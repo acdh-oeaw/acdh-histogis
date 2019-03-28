@@ -1,5 +1,7 @@
+import datetime
 import re
 import requests
+import json
 import lxml.etree as ET
 
 HISTOGIS_URL = "https://histogis.acdh.oeaw.ac.at/api"
@@ -135,6 +137,28 @@ class HistoGis():
                     service = self.map_url_service[s]
         coords = getattr(self, "fetch_{}_data".format(service))(id)
         return self.query(lat=coords['lat'], lng=coords['lng'], when=when, polygon=polygon)
+
+    def dump_all(self, verbose=True):
+        """Dumps HistoGIS data to GeoJSONL; a GeoJSON per line. Can take quite a while. So only/
+        use if really necessary. Alternatively go to ??? to download the latest data dump
+        :return: A text file.
+        """
+        file = 'histogis_dump__{date:%Y-%m-%d__%H-%M-%S}.txt'.format(
+            date=datetime.datetime.now()
+        )
+        next_ft = self.list_endpoint
+        with open(file, 'w', encoding="utf-8") as f:
+            while next_ft:
+                r = requests.get(next_ft)
+                ft = r.json()['features']
+                f.write("{}\n".format(json.dumps(ft)))
+                if verbose:
+                    print("writing to file: {}".format(next_ft))
+                try:
+                    next_ft = r.json()['next']
+                except JSONDecodeError:
+                    next = None
+        return file
 
     def __init__(self, histogis_url=HISTOGIS_URL):
         """__init__
