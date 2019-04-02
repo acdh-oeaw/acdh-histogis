@@ -160,6 +160,32 @@ class HistoGis():
                     next = None
         return file
 
+    def dump_all_file_per_feature(self, verbose=True):
+        """Dumps HistoGIS data to GeoJSON; one file per object. Can take quite a while. So only/
+        use if really necessary. Alternatively go to https://doi.org/10.5281/zenodo.2615387\
+        to download the latest data dump
+        :return: A text file.
+        """
+
+        next_ft = self.list_endpoint
+        counter = 0
+        while next_ft:
+            r = requests.get(next_ft)
+            ft = r.json()['features'][0]
+            ft_slugged = ft['properties']['slugged_name']
+            file = "{}.json".format(ft_slugged)
+            counter += 1
+            if verbose:
+                print("{}".format(file))
+            with open(file, 'w', encoding="utf-8") as f:
+                f.write("{}".format(json.dumps(ft)))
+                try:
+                    next_ft = r.json()['next']
+                except JSONDecodeError:
+                    print('error')
+                    next = None
+        return "done: downloaded {} items".format(counter)
+
     def __init__(self, histogis_url=HISTOGIS_URL):
         """__init__
 
