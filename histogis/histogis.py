@@ -1,4 +1,6 @@
 import datetime
+import os
+import glob
 import re
 import requests
 import json
@@ -160,7 +162,7 @@ class HistoGis():
                     next = None
         return file
 
-    def dump_all_file_per_feature(self, verbose=True):
+    def dump_all_file_per_feature(self, verbose=True, path='.'):
         """Dumps HistoGIS data to GeoJSON; one file per object. Can take quite a while. So only/
         use if really necessary. Alternatively go to https://doi.org/10.5281/zenodo.2615387\
         to download the latest data dump
@@ -173,7 +175,8 @@ class HistoGis():
             r = requests.get(next_ft)
             ft = r.json()['features'][0]
             ft_slugged = ft['properties']['slugged_name']
-            file = "{}.json".format(ft_slugged)
+            file = "{}.geojson".format(ft_slugged)
+            file = os.path.join(path, file)
             counter += 1
             if verbose:
                 print("{}".format(file))
@@ -221,3 +224,18 @@ class HistoGis():
             "gndo": "http://d-nb.info/standards/elementset/gnd#",
             "wdt": "http://www.wikidata.org/prop/direct/"
         }
+
+
+def merge_single_files(file='histogis-dump.jsonl', source_path='single_files', verbose=True):
+    """
+    writes all geojson from the given folder into a JSONL file
+    :path: Path to folder containing the .geojson files
+    :return: A JSONL file.
+    """
+    files = sorted(glob.glob(f"./{source_path}/*.geojson"))
+    with open(file, 'w', encoding="utf-8") as f:
+        for x in files:
+            with open(x) as json_file:
+                data = json.load(json_file)
+                f.write(f"{json.dumps(data)}\n")
+    return file

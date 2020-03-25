@@ -3,6 +3,13 @@
 History
 -------
 
+0.0.5 (2020-03-25)
+++++++++++++++++++
+
+* some modifications to dump data methods added
+* function to create singel JSONL file from single files added
+
+
 0.0.4 (2019-04-02)
 ++++++++++++++++++
 
