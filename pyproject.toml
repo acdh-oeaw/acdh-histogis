@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "acdh-histogis"
+authors = [
+    { name = "Peter Andorfer", email = "peter.andorfer@oeaw.ac.at" },
+    { name = "Matthias Schlögl", email = "matthias.schloegl@oeaw.ac.at" },
+]
+description = "High level api to interact with https://histogis.acdh.oeaw.ac.at"
+version = "0.1.0"
+readme = "README.md"
+license = {file = "LICENSE.txt"}
+requires-python = ">=3.7"
+dependencies = ["requests>=2.20.1", "lxml>=4.3.2"]
+
+[project.urls]
+Repository = "https://github.com/acdh-oeaw/acdh-histogis"
+
+[project.optional-dependencies]
+dev = ["pytest", "coverage", "flake8"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+
+[tool.coverage.run]
+branch = true
+source = [
+    "histogis"
+]

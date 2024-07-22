@@ -6,14 +6,17 @@ import requests
 import json
 import lxml.etree as ET
 
+from json import JSONDecodeError
+
+
 HISTOGIS_URL = "https://histogis.acdh.oeaw.ac.at/api"
 
 
-class HistoGis():
+class HistoGis:
     """Main class to interact with HistoGIS TempSpatial Objects"""
 
     def test_connection(self):
-        """ Checks if a GET request to histogis_url returns status code 200 """
+        """Checks if a GET request to histogis_url returns status code 200"""
         try:
             r = requests.get(self.histogis_url)
         except Exception as e:
@@ -28,10 +31,10 @@ class HistoGis():
     def count(self):
         """returns the number of available TempSpatial objects"""
         r = requests.get(self.list_endpoint)
-        result = r.json()['count']
+        result = r.json()["count"]
         return result
 
-    def query(self, lat=48.2894, lng=14.304, when='1860-12-12', polygon=False):
+    def query(self, lat=48.2894, lng=14.304, when="1860-12-12", polygon=False):
         """Makes a spatial lookup and returns a list of matching objects
         :param lat: Latitude of the place to query for
         :param lng: Langitude of the place to query for
@@ -42,20 +45,16 @@ class HistoGis():
 
         if when is not None:
             # ToDo check if when casts to iso date
-            url = "{}?lat={}&lng={}&when={}".format(
-                self.query_endpoint, lat, lng, when
-            )
+            url = "{}?lat={}&lng={}&when={}".format(self.query_endpoint, lat, lng, when)
         else:
-            url = "{}?lat={}&lng={}&format".format(
-                self.query_endpoint, lat, lng
-            )
+            url = "{}?lat={}&lng={}&format".format(self.query_endpoint, lat, lng)
         url = "{}&format=json".format(url)
         r = requests.get(url)
         if polygon:
             return r.json()
         else:
             try:
-                return r.json()['features'][0]['properties']
+                return r.json()["features"][0]["properties"]
             except IndexError:
                 return self.empty_result
 
@@ -71,11 +70,7 @@ class HistoGis():
         lat = rdf.xpath(".//wgs84_pos:lat/text()", namespaces=self.nsmap)[0]
         lng = rdf.xpath(".//wgs84_pos:long/text()", namespaces=self.nsmap)[0]
         name = rdf.xpath(".//gn:name/text()", namespaces=self.nsmap)[0]
-        return {
-            "name": name,
-            "lat": lat,
-            "lng": lng
-        }
+        return {"name": name, "lat": lat, "lng": lng}
 
     def fetch_gnd_data(self, gnd="http://d-nb.info/gnd/4066009-6/about/lds.rdf"):
         """returns name and coordinates for the passed in gnd identifier
@@ -93,12 +88,11 @@ class HistoGis():
             raise ValueError("GND RDF did not contain coordinates.")
         lng = lat_long_match.group(1)
         lat = lat_long_match.group(2)
-        name = rdf.xpath('.//gndo:preferredNameForThePlaceOrGeographicName/text()', namespaces=self.nsmap)[0]
-        return {
-            "name": name,
-            "lat": lat,
-            "lng": lng
-        }
+        name = rdf.xpath(
+            ".//gndo:preferredNameForThePlaceOrGeographicName/text()",
+            namespaces=self.nsmap,
+        )[0]
+        return {"name": name, "lat": lat, "lng": lng}
 
     def fetch_wikidata_data(self, wikidata="https://www.wikidata.org/entity/Q41329"):
         """returns name and coordinates for the passed in wikidata identifier
@@ -116,15 +110,18 @@ class HistoGis():
             raise ValueError("Wikidata RDF did not contain coordinates.")
         lng = lat_long_match.group(1)
         lat = lat_long_match.group(2)
-        name = rdf.xpath(".//rdf:Description[@rdf:about='http://www.wikidata.org/entity/{}']/rdfs:label[@xml:lang='de']/text()".format(wikidata_id), namespaces=self.nsmap)[0]
-        return {
-            "name": name,
-            "lat": lat,
-            "lng": lng
-        }
+        name = rdf.xpath(
+            f".//rdf:Description[@rdf:about='http://www.wikidata.org/entity/{wikidata_id}']/rdfs:label[@xml:lang='de']/text()",  # noqa:E501
+            namespaces=self.nsmap,
+        )[0]
+        return {"name": name, "lat": lat, "lng": lng}
 
     def query_by_service_id(
-        self, service=None, id="https://www.geonames.org/2772400/", when='1860-12-12', polygon=False
+        self,
+        service=None,
+        id="https://www.geonames.org/2772400/",
+        when="1860-12-12",
+        polygon=False,
     ):
         """Makes a spatial lookup by geonames id a list of matching objects
         :param gnd: Any kind of geonames id, can be just the geonames id (as string)\
@@ -138,31 +135,33 @@ class HistoGis():
                 if s in id:
                     service = self.map_url_service[s]
         coords = getattr(self, "fetch_{}_data".format(service))(id)
-        return self.query(lat=coords['lat'], lng=coords['lng'], when=when, polygon=polygon)
+        return self.query(
+            lat=coords["lat"], lng=coords["lng"], when=when, polygon=polygon
+        )
 
     def dump_all(self, verbose=True):
         """Dumps HistoGIS data to GeoJSONL; a GeoJSON per line. Can take quite a while. So only/
         use if really necessary. Alternatively go to ??? to download the latest data dump
         :return: A text file.
         """
-        file = 'histogis_dump__{date:%Y-%m-%d__%H-%M-%S}.txt'.format(
+        file = "histogis_dump__{date:%Y-%m-%d__%H-%M-%S}.txt".format(
             date=datetime.datetime.now()
         )
         next_ft = self.list_endpoint
-        with open(file, 'w', encoding="utf-8") as f:
+        with open(file, "w", encoding="utf-8") as f:
             while next_ft:
                 r = requests.get(next_ft)
-                ft = r.json()['features']
+                ft = r.json()["features"]
                 f.write("{}\n".format(json.dumps(ft)))
                 if verbose:
                     print("writing to file: {}".format(next_ft))
                 try:
-                    next_ft = r.json()['next']
+                    next_ft = r.json()["next"]
                 except JSONDecodeError:
-                    next = None
+                    next_ft = None
         return file
 
-    def dump_all_file_per_feature(self, verbose=True, path='.'):
+    def dump_all_file_per_feature(self, verbose=True, path="."):
         """Dumps HistoGIS data to GeoJSON; one file per object. Can take quite a while. So only/
         use if really necessary. Alternatively go to https://doi.org/10.5281/zenodo.2615387\
         to download the latest data dump
@@ -173,20 +172,20 @@ class HistoGis():
         counter = 0
         while next_ft:
             r = requests.get(next_ft)
-            ft = r.json()['features'][0]
-            ft_slugged = ft['properties']['slugged_name']
+            ft = r.json()["features"][0]
+            ft_slugged = ft["properties"]["slugged_name"]
             file = "{}.geojson".format(ft_slugged)
             file = os.path.join(path, file)
             counter += 1
             if verbose:
                 print("{}".format(file))
-            with open(file, 'w', encoding="utf-8") as f:
+            with open(file, "w", encoding="utf-8") as f:
                 f.write("{}".format(json.dumps(ft)))
                 try:
-                    next_ft = r.json()['next']
+                    next_ft = r.json()["next"]
                 except JSONDecodeError:
-                    print('error')
-                    next = None
+                    print("error")
+                    next_ft = None
         return "done: downloaded {} items".format(counter)
 
     def __init__(self, histogis_url=HISTOGIS_URL):
@@ -194,7 +193,7 @@ class HistoGis():
 
         :param histogis_url: Url pointing to a HistoGIS-TempSpatial endpoint
         """
-        if histogis_url.endswith('/'):
+        if histogis_url.endswith("/"):
             self.histogis_url = histogis_url
         else:
             self.histogis_url = "{}/".format(histogis_url)
@@ -202,38 +201,40 @@ class HistoGis():
         self.list_endpoint = "{}tempspatial/?format=json".format(self.histogis_url)
         self.query_endpoint = "{}where-was/".format(self.histogis_url)
         self.empty_result = {
-            'count': 0,
-            'features': [],
-            'next': None,
-            'previous': None,
-            'type': 'FeatureCollection'
+            "count": 0,
+            "features": [],
+            "next": None,
+            "previous": None,
+            "type": "FeatureCollection",
         }
         self.map_url_service = {
-            'geonames': 'geonames',
-            'd-nb': 'gnd',
-            'wikidata': 'wikidata'
+            "geonames": "geonames",
+            "d-nb": "gnd",
+            "wikidata": "wikidata",
         }
         self.nsmap = {
-            'wgs84_pos': "http://www.w3.org/2003/01/geo/wgs84_pos#",
-            'gn': "http://www.geonames.org/ontology#",
-            'rdf': "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-            'rdfs': "http://www.w3.org/2000/01/rdf-schema#",
-            'tei': "http://www.tei-c.org/ns/1.0",
-            'xml': "http://www.w3.org/XML/1998/namespace",
-            'geo': "http://www.opengis.net/ont/geosparql#",
+            "wgs84_pos": "http://www.w3.org/2003/01/geo/wgs84_pos#",
+            "gn": "http://www.geonames.org/ontology#",
+            "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+            "tei": "http://www.tei-c.org/ns/1.0",
+            "xml": "http://www.w3.org/XML/1998/namespace",
+            "geo": "http://www.opengis.net/ont/geosparql#",
             "gndo": "http://d-nb.info/standards/elementset/gnd#",
-            "wdt": "http://www.wikidata.org/prop/direct/"
+            "wdt": "http://www.wikidata.org/prop/direct/",
         }
 
 
-def merge_single_files(file='histogis-dump.jsonl', source_path='single_files', verbose=True):
+def merge_single_files(
+    file="histogis-dump.jsonl", source_path="single_files", verbose=True
+):
     """
     writes all geojson from the given folder into a JSONL file
     :path: Path to folder containing the .geojson files
     :return: A JSONL file.
     """
     files = sorted(glob.glob(f"./{source_path}/*.geojson"))
-    with open(file, 'w', encoding="utf-8") as f:
+    with open(file, "w", encoding="utf-8") as f:
         for x in files:
             with open(x) as json_file:
                 data = json.load(json_file)

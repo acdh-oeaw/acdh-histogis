@@ -1,0 +1,6 @@
+lxml
+requests
+coverage
+flake8
+pytest
+black
