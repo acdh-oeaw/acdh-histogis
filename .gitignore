@@ -1,5 +1,8 @@
 play.*
 venv/
+docs/HISTORY.md
+docs/README.md
+site/
 
 *.py[cod]
 __pycache__

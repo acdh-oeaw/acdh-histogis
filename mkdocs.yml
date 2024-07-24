@@ -1,0 +1,11 @@
+site_name: acdh-histogis
+
+theme: readthedocs
+
+plugins:
+  - mkdocstrings
+
+nav:
+- Home: README.md
+- History: HISTORY.md
+- API-Documentation: reference.md
