@@ -60,3 +60,10 @@ pip install -e .[dev]
 ```
 coverage run -m pytest -v
 ```
+
+## build the docs
+
+* run 
+```bash
+./build_docs.sh
+```
