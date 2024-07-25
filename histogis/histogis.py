@@ -42,14 +42,11 @@ class HistoGis:
         :param polygon: If true, the whole geojson is returned, only the properties
         :return: A list of matching objects
         """
-
+        params = {"lat": lat, "lng": lng, "format": "json"}
         if when is not None:
-            # ToDo check if when casts to iso date
-            url = "{}?lat={}&lng={}&when={}".format(self.query_endpoint, lat, lng, when)
-        else:
-            url = "{}?lat={}&lng={}&format".format(self.query_endpoint, lat, lng)
-        url = "{}&format=json".format(url)
-        r = requests.get(url)
+            # ToDo: check if when casts to iso date
+            params["when"] = when
+        r = requests.get(self.query_endpoint, params=params)
         if polygon:
             return r.json()
         else:
@@ -65,7 +62,7 @@ class HistoGis:
         :return: a dict with keys 'name', 'lat' and lng.
         """
         geonames_id = re.search(r"\d+", geonames).group()
-        url = "http://sws.geonames.org/{}/about.rdf".format(geonames_id)
+        url = f"http://sws.geonames.org/{geonames_id}/about.rdf"
         rdf = ET.parse(url)
         lat = rdf.xpath(".//wgs84_pos:lat/text()", namespaces=self.nsmap)[0]
         lng = rdf.xpath(".//wgs84_pos:long/text()", namespaces=self.nsmap)[0]
@@ -79,7 +76,7 @@ class HistoGis:
         :return: a dict with keys 'name', 'lat' and lng.
         """
         gnd_id = re.search("(\d+[A-Z0-9\-]+)", gnd).group()
-        url = "http://d-nb.info/gnd/{}/about/lds.rdf".format(gnd_id)
+        url = f"http://d-nb.info/gnd/{gnd_id}/about/lds.rdf"
         res = requests.get(url)
         rdf = ET.fromstring(res.content)
         lat_long = rdf.xpath(".//geo:asWKT/text()", namespaces=self.nsmap)[0]
@@ -101,7 +98,7 @@ class HistoGis:
         :return: a dict with keys 'name', 'lat' and lng.
         """
         wikidata_id = re.search("(Q\d+)", wikidata).group()
-        url = "https://wikidata.org/entity/{}.rdf".format(wikidata_id)
+        url = f"https://wikidata.org/entity/{wikidata_id}.rdf"
         res = requests.get(url)
         rdf = ET.fromstring(res.content)
         lat_long = rdf.xpath(".//wdt:P625/text()", namespaces=self.nsmap)[0]
@@ -134,7 +131,7 @@ class HistoGis:
             for s in self.map_url_service.keys():
                 if s in id:
                     service = self.map_url_service[s]
-        coords = getattr(self, "fetch_{}_data".format(service))(id)
+        coords = getattr(self, f"fetch_{service}_data")(id)
         return self.query(
             lat=coords["lat"], lng=coords["lng"], when=when, polygon=polygon
         )
@@ -152,9 +149,9 @@ class HistoGis:
             while next_ft:
                 r = requests.get(next_ft)
                 ft = r.json()["features"]
-                f.write("{}\n".format(json.dumps(ft)))
+                f.write(f"{json.dumps(ft)}\n")
                 if verbose:
-                    print("writing to file: {}".format(next_ft))
+                    print(f"writing to file: {next_ft}")
                 try:
                     next_ft = r.json()["next"]
                 except JSONDecodeError:
@@ -174,19 +171,19 @@ class HistoGis:
             r = requests.get(next_ft)
             ft = r.json()["features"][0]
             ft_slugged = ft["properties"]["slugged_name"]
-            file = "{}.geojson".format(ft_slugged)
+            file = f"{ft_slugged}.geojson"
             file = os.path.join(path, file)
             counter += 1
             if verbose:
-                print("{}".format(file))
+                print(f"{file}")
             with open(file, "w", encoding="utf-8") as f:
-                f.write("{}".format(json.dumps(ft)))
+                f.write(f"{json.dumps(ft)}")
                 try:
                     next_ft = r.json()["next"]
                 except JSONDecodeError:
                     print("error")
                     next_ft = None
-        return "done: downloaded {} items".format(counter)
+        return f"done: downloaded {counter} items"
 
     def __init__(self, histogis_url=HISTOGIS_URL):
         """__init__
@@ -196,10 +193,10 @@ class HistoGis:
         if histogis_url.endswith("/"):
             self.histogis_url = histogis_url
         else:
-            self.histogis_url = "{}/".format(histogis_url)
+            self.histogis_url = f"{histogis_url}/"
         self.status = self.test_connection()
-        self.list_endpoint = "{}tempspatial/?format=json".format(self.histogis_url)
-        self.query_endpoint = "{}where-was/".format(self.histogis_url)
+        self.list_endpoint = f"{self.histogis_url}tempspatial/?format=json"
+        self.query_endpoint = f"{self.histogis_url}"
         self.empty_result = {
             "count": 0,
             "features": [],
