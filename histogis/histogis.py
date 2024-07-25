@@ -75,12 +75,12 @@ class HistoGis:
         or any geonames URI like http://d-nb.info/gnd/4066009-6/about/lds.rdf
         :return: a dict with keys 'name', 'lat' and lng.
         """
-        gnd_id = re.search("(\d+[A-Z0-9\-]+)", gnd).group()
+        gnd_id = re.search(r"(\d+[A-Z0-9\-]+)", gnd).group()
         url = f"http://d-nb.info/gnd/{gnd_id}/about/lds.rdf"
         res = requests.get(url)
         rdf = ET.fromstring(res.content)
         lat_long = rdf.xpath(".//geo:asWKT/text()", namespaces=self.nsmap)[0]
-        lat_long_match = re.search("\+0?([0-9\.]+)\s+\+0?([0-9\.]+)", lat_long)
+        lat_long_match = re.search(r"\+0?([0-9\.]+)\s+\+0?([0-9\.]+)", lat_long)
         if not lat_long_match:
             raise ValueError("GND RDF did not contain coordinates.")
         lng = lat_long_match.group(1)
@@ -97,12 +97,12 @@ class HistoGis:
         or any wikidata URI like https://www.wikidata.org/entity/Q41329
         :return: a dict with keys 'name', 'lat' and lng.
         """
-        wikidata_id = re.search("(Q\d+)", wikidata).group()
+        wikidata_id = re.search(r"(Q\d+)", wikidata).group()
         url = f"https://wikidata.org/entity/{wikidata_id}.rdf"
         res = requests.get(url)
         rdf = ET.fromstring(res.content)
         lat_long = rdf.xpath(".//wdt:P625/text()", namespaces=self.nsmap)[0]
-        lat_long_match = re.search("0?([0-9\.]+)\s+0?([0-9\.]+)", lat_long)
+        lat_long_match = re.search(r"0?([0-9\.]+)\s+0?([0-9\.]+)", lat_long)
         if not lat_long_match:
             raise ValueError("Wikidata RDF did not contain coordinates.")
         lng = lat_long_match.group(1)
