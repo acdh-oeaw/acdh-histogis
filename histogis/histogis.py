@@ -9,7 +9,7 @@ import lxml.etree as ET
 from json import JSONDecodeError
 
 
-HISTOGIS_URL = "https://histogis.acdh.oeaw.ac.at/api"
+HISTOGIS_URL = "https://histogis.acdh.oeaw.ac.at/api/"
 
 
 class HistoGis:
@@ -46,7 +46,8 @@ class HistoGis:
         if when is not None:
             # ToDo: check if when casts to iso date
             params["when"] = when
-        r = requests.get(self.query_endpoint, params=params)
+        r = requests.get(self.list_endpoint, params=params)
+        print(r.json())
         if polygon:
             return r.json()
         else:
@@ -132,6 +133,7 @@ class HistoGis:
                 if s in id:
                     service = self.map_url_service[s]
         coords = getattr(self, f"fetch_{service}_data")(id)
+        print(coords)
         return self.query(
             lat=coords["lat"], lng=coords["lng"], when=when, polygon=polygon
         )
